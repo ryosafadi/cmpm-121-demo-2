@@ -77,11 +77,37 @@ canvas.addEventListener("drawing-changed", () => {
     }
 });
 
+const buttonContainer = document.createElement("div");
+buttonContainer.className = "buttonContainer";
+canvasContainer.append(buttonContainer);
+
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "CLEAR";
-canvasContainer.append(clearButton);
+buttonContainer.append(clearButton);
 
 clearButton.addEventListener("click", () => {
     lines.splice(0, lines.length);
     canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "UNDO";
+buttonContainer.append(undoButton);
+
+undoButton.addEventListener("click", () => {
+    if (lines.length > 0) {
+        redoLines.push(lines.pop()!);
+        canvas.dispatchEvent(new Event("drawing-changed"));
+    }
+});
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "REDO";
+buttonContainer.append(redoButton);
+
+redoButton.addEventListener("click", () => {
+    if (redoLines.length > 0) {
+        lines.push(redoLines.pop()!);
+        canvas.dispatchEvent(new Event("drawing-changed"));
+    }
 });

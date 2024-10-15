@@ -35,6 +35,12 @@ canvas {
   gap: 20px;
 }
 
+.buttonContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
 body {
   margin: 0;
   display: flex;
