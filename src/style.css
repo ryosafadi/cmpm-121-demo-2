@@ -41,6 +41,10 @@ canvas {
   gap: 10px;
 }
 
+.selectedTool {
+  background-color: #248a24;
+}
+
 body {
   margin: 0;
   display: flex;
