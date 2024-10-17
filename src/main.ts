@@ -23,10 +23,37 @@ const ctx = canvas.getContext("2d");
 if (ctx) ctx.fillStyle = "white";
 ctx?.fillRect(0, 0, canvas.width, canvas.height);
 
-const lines: { x: number; y: number }[][] = [];
-const redoLines: { x: number; y: number }[][] = [];
+interface Displayable {
+    display(context: CanvasRenderingContext2D): void;
+}
 
-let currentLine: { x: number; y: number }[] | null = null;
+class MarkerLine implements Displayable {
+    points: { x: number; y: number }[] = [];
+
+    constructor(x: number, y: number) {
+        this.points.push({ x, y });
+    }
+
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
+
+    display(context: CanvasRenderingContext2D) {
+        if (this.points.length > 1) {
+            context.beginPath();
+            context.moveTo(this.points[0].x, this.points[0].y);
+            for (const { x, y } of this.points) {
+                context.lineTo(x, y);
+            }
+            context.stroke();
+        }
+    }
+}
+
+const lines: Displayable[] = [];
+const redoLines: Displayable[] = [];
+
+let currentLine: MarkerLine | null = null;
 
 const cursor = { active: false, x: 0, y: 0 };
 
@@ -35,19 +62,18 @@ canvas.addEventListener("mousedown", (e) => {
     cursor.x = e.offsetX;
     cursor.y = e.offsetY;
 
-    currentLine = [];
+    currentLine = new MarkerLine(cursor.x, cursor.y);
     lines.push(currentLine);
     redoLines.splice(0, redoLines.length);
-    currentLine.push({ x: cursor.x, y: cursor.y });
 
     canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e) => {
-    if (cursor.active) {
+    if (cursor.active && currentLine) {
         cursor.x = e.offsetX;
         cursor.y = e.offsetY;
-        currentLine?.push({ x: cursor.x, y: cursor.y });
+        currentLine.drag(cursor.x, cursor.y);
 
         canvas.dispatchEvent(new Event("drawing-changed"));
     }
@@ -63,17 +89,7 @@ canvas.addEventListener("mouseup", () => {
 canvas.addEventListener("drawing-changed", () => {
     ctx?.fillRect(0, 0, canvas.width, canvas.height);
     for (const line of lines) {
-        if (line.length > 1) {
-            ctx?.beginPath();
-            const { x, y } = line[0];
-            ctx?.moveTo(x, y);
-
-            for (const { x, y } of line) {
-                ctx?.lineTo(x, y);
-            }
-
-            ctx?.stroke();
-        }
+        line.display(ctx!);
     }
 });
 
