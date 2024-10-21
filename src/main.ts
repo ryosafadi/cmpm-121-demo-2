@@ -23,13 +23,18 @@ const ctx = canvas.getContext("2d");
 if (ctx) ctx.fillStyle = "white";
 ctx?.fillRect(0, 0, canvas.width, canvas.height);
 
-let currentThickness = 1;
+function notify(name: string) {
+    canvas.dispatchEvent(new Event(name));
+}
+
+let currentThickness: number = 1;
+let cursorCommand: CursorCommand | null = null;
 
 interface Displayable {
     display(context: CanvasRenderingContext2D): void;
 }
 
-class MarkerLine implements Displayable {
+class MarkerCommand implements Displayable {
     points: { x: number; y: number }[] = [];
     thickness: number;
 
@@ -55,47 +60,98 @@ class MarkerLine implements Displayable {
     }
 }
 
+class CursorCommand implements Displayable {
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    display(context: CanvasRenderingContext2D) {
+        const radius = currentThickness;
+        context.beginPath();
+        context.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        context.fillStyle = "transparent"
+        context.fill();
+        context.strokeStyle = "black";
+        context.lineWidth = 1;
+        context.stroke();
+    }
+}
+
 const lines: Displayable[] = [];
 const redoLines: Displayable[] = [];
 
-let currentLine: MarkerLine | null = null;
+let currentLine: MarkerCommand | null = null;
+
 
 const cursor = { active: false, x: 0, y: 0 };
 
-canvas.addEventListener("mousedown", (e) => {
-    cursor.active = true;
-    cursor.x = e.offsetX;
-    cursor.y = e.offsetY;
-
-    currentLine = new MarkerLine(cursor.x, cursor.y, currentThickness);
-    lines.push(currentLine);
-    redoLines.splice(0, redoLines.length);
-
-    canvas.dispatchEvent(new Event("drawing-changed"));
-});
-
-canvas.addEventListener("mousemove", (e) => {
-    if (cursor.active && currentLine) {
-        cursor.x = e.offsetX;
-        cursor.y = e.offsetY;
-        currentLine.drag(cursor.x, cursor.y);
-
-        canvas.dispatchEvent(new Event("drawing-changed"));
-    }
-});
-
-canvas.addEventListener("mouseup", () => {
-    cursor.active = false;
-    currentLine = null;
-
-    canvas.dispatchEvent(new Event("drawing-changed"));
-});
-
 canvas.addEventListener("drawing-changed", () => {
+    if (ctx) ctx.fillStyle = "white";
     ctx?.fillRect(0, 0, canvas.width, canvas.height);
     for (const line of lines) {
         line.display(ctx!);
     }
+});
+
+canvas.addEventListener("tool-moved", () => {
+    if (ctx) ctx.fillStyle = "white";
+    ctx?.fillRect(0, 0, canvas.width, canvas.height);
+    for (const line of lines) {
+        line.display(ctx!);
+    }
+
+    cursorCommand?.display(ctx!);
+})
+
+canvas.addEventListener("mouseout", () => {
+    cursorCommand = null;
+    notify("tool-moved");
+});
+
+canvas.addEventListener("mouseenter", (e) => {
+    cursorCommand = new CursorCommand(e.offsetX, e.offsetY);
+    notify("tool-moved");
+});
+
+canvas.addEventListener("mousedown", (e) => {
+    canvas.style.cursor = "default";
+    cursor.active = true;
+    cursor.x = e.offsetX;
+    cursor.y = e.offsetY;
+
+    currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness);
+    lines.push(currentLine);
+    redoLines.splice(0, redoLines.length);
+
+    notify("drawing-changed");
+});
+
+canvas.addEventListener("mousemove", (e) => {
+    cursorCommand = new CursorCommand(e.offsetX, e.offsetY);
+    notify("tool-moved");
+
+    if (cursor.active && currentLine) {
+        canvas.style.cursor = "default";
+        cursor.x = e.offsetX;
+        cursor.y = e.offsetY;
+        currentLine.drag(cursor.x, cursor.y);
+
+        notify("drawing-changed");
+    }
+    else canvas.style.cursor = "none";
+});
+
+canvas.addEventListener("mouseup", () => {
+    canvas.style.cursor = "none";
+    cursor.active = false;
+    currentLine = null;
+
+    notify("drawing-changed");
+    notify("tool-moved");
 });
 
 const editButtons = document.createElement("div");
@@ -108,7 +164,7 @@ editButtons.append(clearButton);
 
 clearButton.addEventListener("click", () => {
     lines.splice(0, lines.length);
-    canvas.dispatchEvent(new Event("drawing-changed"));
+    notify("drawing-changed");
 });
 
 const undoButton = document.createElement("button");
@@ -118,7 +174,7 @@ editButtons.append(undoButton);
 undoButton.addEventListener("click", () => {
     if (lines.length > 0) {
         redoLines.push(lines.pop()!);
-        canvas.dispatchEvent(new Event("drawing-changed"));
+        notify("drawing-changed");
     }
 });
 
@@ -129,7 +185,7 @@ editButtons.append(redoButton);
 redoButton.addEventListener("click", () => {
     if (redoLines.length > 0) {
         lines.push(redoLines.pop()!);
-        canvas.dispatchEvent(new Event("drawing-changed"));
+        notify("drawing-changed");
     }
 });
 
