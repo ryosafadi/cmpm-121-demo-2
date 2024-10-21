@@ -154,35 +154,37 @@ canvas.addEventListener("mouseup", () => {
     notify("tool-moved");
 });
 
+function createButton(
+    label: string,
+    container: HTMLDivElement,
+    onClick: () => void,
+    isSelected: boolean = false
+) {
+    const button = document.createElement("button");
+    button.innerHTML = label;
+    if (isSelected) button.classList.add("selectedTool");
+    container.append(button);
+    button.addEventListener("click", onClick);
+    return button;
+}
+
 const editButtons = document.createElement("div");
 editButtons.className = "buttonContainer";
 canvasContainer.append(editButtons);
 
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "CLEAR";
-editButtons.append(clearButton);
-
-clearButton.addEventListener("click", () => {
+createButton("CLEAR", editButtons, () => {
     lines.splice(0, lines.length);
     notify("drawing-changed");
 });
 
-const undoButton = document.createElement("button");
-undoButton.innerHTML = "UNDO";
-editButtons.append(undoButton);
-
-undoButton.addEventListener("click", () => {
+createButton("UNDO", editButtons, () => {
     if (lines.length > 0) {
         redoLines.push(lines.pop()!);
         notify("drawing-changed");
     }
 });
 
-const redoButton = document.createElement("button");
-redoButton.innerHTML = "REDO";
-editButtons.append(redoButton);
-
-redoButton.addEventListener("click", () => {
+createButton("REDO", editButtons, () => {
     if (redoLines.length > 0) {
         lines.push(redoLines.pop()!);
         notify("drawing-changed");
@@ -193,22 +195,13 @@ const markerButtons = document.createElement("div");
 markerButtons.className = "buttonContainer";
 canvasContainer.append(markerButtons);
 
-const thinButton = document.createElement("button");
-thinButton.innerHTML = "THIN";
-thinButton.classList.add("selectedTool");
-markerButtons.append(thinButton);
-
-thinButton.addEventListener("click", () => {
+const thinButton = createButton("THIN", markerButtons, () => {
     currentThickness = 1;
     thinButton.classList.add("selectedTool");
     thickButton.classList.remove("selectedTool");
-});
+}, true);
 
-const thickButton = document.createElement("button");
-thickButton.innerHTML = "THICK";
-markerButtons.append(thickButton);
-
-thickButton.addEventListener("click", () => {
+const thickButton = createButton("THICK", markerButtons, () => {
     currentThickness = 5;
     thickButton.classList.add("selectedTool");
     thinButton.classList.remove("selectedTool");
