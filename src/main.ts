@@ -60,6 +60,25 @@ class MarkerCommand implements Displayable {
     }
 }
 
+class EmojiCommand implements Displayable {
+    emoji: string;
+    x: number;
+    y: number;
+
+    constructor(emoji: string, x: number, y: number) {
+        this.emoji = emoji;
+        this.x = x;
+        this.y = y;
+    }
+
+    display(context: CanvasRenderingContext2D) {
+        context.font = `32px Arial`;
+        context.fillText(this.emoji, this.x, this.y);
+    }
+
+    drag() {}
+}
+
 class CursorCommand implements Displayable {
     x: number;
     y: number;
@@ -73,7 +92,7 @@ class CursorCommand implements Displayable {
         const radius = currentThickness;
         context.beginPath();
         context.arc(this.x, this.y, radius, 0, Math.PI * 2);
-        context.fillStyle = "transparent"
+        context.fillStyle = "transparent";
         context.fill();
         context.strokeStyle = "black";
         context.lineWidth = 1;
@@ -86,8 +105,9 @@ const redoLines: Displayable[] = [];
 
 let currentLine: MarkerCommand | null = null;
 
-
 const cursor = { active: false, x: 0, y: 0 };
+
+const stickers = ["🐣", "🐈", "🦕"];
 
 canvas.addEventListener("drawing-changed", () => {
     if (ctx) ctx.fillStyle = "white";
@@ -105,7 +125,7 @@ canvas.addEventListener("tool-moved", () => {
     }
 
     cursorCommand?.display(ctx!);
-})
+});
 
 canvas.addEventListener("mouseout", () => {
     cursorCommand = null;
@@ -141,8 +161,7 @@ canvas.addEventListener("mousemove", (e) => {
         currentLine.drag(cursor.x, cursor.y);
 
         notify("drawing-changed");
-    }
-    else canvas.style.cursor = "none";
+    } else canvas.style.cursor = "none";
 });
 
 canvas.addEventListener("mouseup", () => {
@@ -158,14 +177,26 @@ function createButton(
     label: string,
     container: HTMLDivElement,
     onClick: () => void,
+    selectable: boolean = false,
     isSelected: boolean = false
 ) {
     const button = document.createElement("button");
     button.innerHTML = label;
     if (isSelected) button.classList.add("selectedTool");
     container.append(button);
-    button.addEventListener("click", onClick);
+    button.addEventListener("click", () => {
+        onClick();
+        if (selectable) setSelected(button);
+    });
     return button;
+}
+
+function setSelected(selectedButton: HTMLButtonElement) {
+    const allButtons = document.querySelectorAll("button");
+    allButtons.forEach((button) => {
+        button.classList.remove("selectedTool");
+    });
+    selectedButton.classList.add("selectedTool");
 }
 
 const editButtons = document.createElement("div");
@@ -195,14 +226,20 @@ const markerButtons = document.createElement("div");
 markerButtons.className = "buttonContainer";
 canvasContainer.append(markerButtons);
 
-const thinButton = createButton("THIN", markerButtons, () => {
+createButton("THIN", markerButtons, () => {
     currentThickness = 1;
-    thinButton.classList.add("selectedTool");
-    thickButton.classList.remove("selectedTool");
+}, true, true);
+
+createButton("THICK", markerButtons, () => {
+    currentThickness = 5;
 }, true);
 
-const thickButton = createButton("THICK", markerButtons, () => {
-    currentThickness = 5;
-    thickButton.classList.add("selectedTool");
-    thinButton.classList.remove("selectedTool");
-});
+const stickerButtons = document.createElement("div");
+stickerButtons.className = "buttonContainer";
+canvasContainer.append(stickerButtons);
+
+for (const sticker of stickers) {
+    createButton(sticker, stickerButtons, () => {
+        notify("tool-moved");
+    }, true);
+}
