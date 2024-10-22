@@ -32,6 +32,7 @@ let cursorCommand: CursorCommand | null = null;
 
 interface Displayable {
     display(context: CanvasRenderingContext2D): void;
+    drag(x: number, y: number): void;
 }
 
 class MarkerCommand implements Displayable {
@@ -60,26 +61,49 @@ class MarkerCommand implements Displayable {
     }
 }
 
-class EmojiCommand implements Displayable {
-    emoji: string;
+class StickerCommand implements Displayable {
+    sticker: string;
     x: number;
     y: number;
+    centeredX: number;
+    centeredY: number;
 
-    constructor(emoji: string, x: number, y: number) {
-        this.emoji = emoji;
+    constructor(sticker: string, x: number, y: number) {
+        this.sticker = sticker;
         this.x = x;
         this.y = y;
+
+        const fontSize: number = 32;
+        const context = document.createElement('canvas').getContext('2d')!;
+        context.font = `${fontSize}px Arial`;
+        const textWidth = context.measureText(this.sticker).width;
+        const textHeight = fontSize;
+
+        this.centeredX = this.x - textWidth / 2;
+        this.centeredY = this.y + textHeight / 2;
     }
 
     display(context: CanvasRenderingContext2D) {
-        context.font = `32px Arial`;
-        context.fillText(this.emoji, this.x, this.y);
+        const fontSize: number = 32;
+        context.font = `${fontSize}px Arial`;
+
+        context.fillText(this.sticker, this.centeredX, this.centeredY);
     }
 
-    drag() {}
+    drag(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+
+        const fontSize: number = 32;
+        const textWidth = ctx!.measureText(this.sticker).width;
+        const textHeight = fontSize;
+
+        this.centeredX = this.x - textWidth / 2;
+        this.centeredY = this.y + textHeight / 2;
+    }
 }
 
-class CursorCommand implements Displayable {
+class CursorCommand {
     x: number;
     y: number;
 
@@ -89,21 +113,35 @@ class CursorCommand implements Displayable {
     }
 
     display(context: CanvasRenderingContext2D) {
-        const radius = currentThickness;
-        context.beginPath();
-        context.arc(this.x, this.y, radius, 0, Math.PI * 2);
-        context.fillStyle = "transparent";
-        context.fill();
-        context.strokeStyle = "black";
-        context.lineWidth = 1;
-        context.stroke();
+        if (currentButton?.parentElement === markerButtons){
+            const radius = currentThickness;
+            context.beginPath();
+            context.arc(this.x, this.y, radius, 0, Math.PI * 2);
+            context.fillStyle = "transparent";
+            context.fill();
+            context.strokeStyle = "black";
+            context.lineWidth = 1;
+            context.stroke();
+        }
+        else {
+            const fontSize: number = 32;
+            context.font = `${fontSize}px Arial`;
+            const textWidth = context.measureText(currentButton!.innerHTML).width;
+            const textHeight = fontSize;
+
+            const centeredX = this.x - textWidth / 2;
+            const centeredY = this.y + textHeight / 2;
+            
+            context.fillText(currentButton!.innerHTML, centeredX, centeredY);
+        }
     }
 }
 
 const lines: Displayable[] = [];
 const redoLines: Displayable[] = [];
 
-let currentLine: MarkerCommand | null = null;
+let currentLine: Displayable | null = null;
+let currentButton: HTMLButtonElement | null = null;
 
 const cursor = { active: false, x: 0, y: 0 };
 
@@ -143,9 +181,16 @@ canvas.addEventListener("mousedown", (e) => {
     cursor.x = e.offsetX;
     cursor.y = e.offsetY;
 
-    currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness);
-    lines.push(currentLine);
-    redoLines.splice(0, redoLines.length);
+    if (currentButton?.parentElement === markerButtons) {
+        currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness);
+        lines.push(currentLine!);
+        redoLines.splice(0, redoLines.length);
+    }
+    else {
+        currentLine = new StickerCommand(currentButton!.innerHTML, cursor.x, cursor.y);
+        lines.push(currentLine!);
+        redoLines.splice(0, redoLines.length);
+    }
 
     notify("drawing-changed");
 });
@@ -158,10 +203,12 @@ canvas.addEventListener("mousemove", (e) => {
         canvas.style.cursor = "default";
         cursor.x = e.offsetX;
         cursor.y = e.offsetY;
+
         currentLine.drag(cursor.x, cursor.y);
 
         notify("drawing-changed");
-    } else canvas.style.cursor = "none";
+    }
+    else canvas.style.cursor = "none";
 });
 
 canvas.addEventListener("mouseup", () => {
@@ -169,7 +216,6 @@ canvas.addEventListener("mouseup", () => {
     cursor.active = false;
     currentLine = null;
 
-    notify("drawing-changed");
     notify("tool-moved");
 });
 
@@ -182,7 +228,10 @@ function createButton(
 ) {
     const button = document.createElement("button");
     button.innerHTML = label;
-    if (isSelected) button.classList.add("selectedTool");
+    if (isSelected) {
+        button.classList.add("selectedTool");
+        currentButton = button;
+    }
     container.append(button);
     button.addEventListener("click", () => {
         onClick();
@@ -197,6 +246,7 @@ function setSelected(selectedButton: HTMLButtonElement) {
         button.classList.remove("selectedTool");
     });
     selectedButton.classList.add("selectedTool");
+    currentButton = selectedButton;
 }
 
 const editButtons = document.createElement("div");
