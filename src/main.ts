@@ -51,7 +51,7 @@ function notify(name: string) {
     canvas.dispatchEvent(new Event(name));
 }
 
-let currentThickness: number = 1;
+let currentThickness: number = 2;
 let cursorCommand: CursorCommand | null = null;
 
 interface Displayable {
@@ -169,7 +169,7 @@ let currentButton: HTMLButtonElement | null = null;
 
 const cursor = { active: false, x: 0, y: 0 };
 
-const stickers = ["🐣", "🐈", "🦕"];
+const stickers = ["🐼", "🐸", "👓"];
 
 canvas.addEventListener("drawing-changed", () => {
     if (ctx) ctx.fillStyle = "white";
@@ -307,7 +307,7 @@ markerButtons.className = "buttonContainer";
 canvasContainer.append(markerButtons);
 
 createButton("THIN", markerButtons, () => {
-    currentThickness = 1;
+    currentThickness = 2;
 }, true, true);
 
 createButton("THICK", markerButtons, () => {
