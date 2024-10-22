@@ -165,6 +165,12 @@ canvas.addEventListener("tool-moved", () => {
     cursorCommand?.display(ctx!);
 });
 
+canvas.addEventListener("sticker-added", () => {
+    createButton(stickers[0], stickerButtons, () => {
+        notify("tool-moved");
+    }, true);
+});
+
 canvas.addEventListener("mouseout", () => {
     cursorCommand = null;
     notify("tool-moved");
@@ -293,3 +299,11 @@ for (const sticker of stickers) {
         notify("tool-moved");
     }, true);
 }
+
+createButton("CUSTOM", canvasContainer, () => {
+    const text = prompt("Custom Sticker Text:", "");
+    if (text) {
+        stickers.unshift(text);
+        notify("sticker-added");
+    }
+});
