@@ -13,6 +13,30 @@ const canvasContainer = document.createElement("div");
 canvasContainer.className = "canvasContainer";
 app.append(canvasContainer);
 
+createButton("EXPORT", canvasContainer, () => {
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = 1024;
+    exportCanvas.height = 1024;
+    
+    const exportCtx = exportCanvas.getContext("2d");
+
+    if (exportCtx) {
+        exportCtx.fillStyle = "white";
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        
+        exportCtx.scale(4, 4);
+
+        for (const line of lines) {
+            line.display(exportCtx);
+        }
+    }
+
+    const anchor = document.createElement("a");
+    anchor.href = exportCanvas.toDataURL("image/png");;
+    anchor.download = "sketchpad.png";
+    anchor.click();
+});
+
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
