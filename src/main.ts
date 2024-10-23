@@ -17,13 +17,13 @@ createButton("EXPORT", canvasContainer, () => {
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = 1024;
     exportCanvas.height = 1024;
-    
+
     const exportCtx = exportCanvas.getContext("2d");
 
     if (exportCtx) {
         exportCtx.fillStyle = "white";
         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-        
+
         exportCtx.scale(4, 4);
 
         for (const line of lines) {
@@ -32,7 +32,7 @@ createButton("EXPORT", canvasContainer, () => {
     }
 
     const anchor = document.createElement("a");
-    anchor.href = exportCanvas.toDataURL("image/png");;
+    anchor.href = exportCanvas.toDataURL("image/png");
     anchor.download = "sketchpad.png";
     anchor.click();
 });
@@ -103,7 +103,7 @@ class StickerCommand implements Displayable {
         this.rotation = rotation;
 
         const fontSize: number = 32;
-        const context = document.createElement('canvas').getContext('2d')!;
+        const context = document.createElement("canvas").getContext("2d")!;
         context.font = `${fontSize}px Arial`;
     }
 
@@ -148,7 +148,9 @@ class CursorCommand {
         } else {
             const fontSize: number = 32;
             context.font = `${fontSize}px Arial`;
-            const textWidth = context.measureText(currentButton!.innerHTML).width;
+            const textWidth = context.measureText(
+                currentButton!.innerHTML,
+            ).width;
             const textHeight = fontSize;
 
             const rotationAngle = currentRotation;
@@ -156,7 +158,11 @@ class CursorCommand {
             context.save();
             context.translate(this.x, this.y);
             context.rotate(rotationAngle);
-            context.fillText(currentButton!.innerHTML, -textWidth / 2, textHeight / 2);
+            context.fillText(
+                currentButton!.innerHTML,
+                -textWidth / 2,
+                textHeight / 2,
+            );
             context.restore();
         }
     }
@@ -191,10 +197,15 @@ canvas.addEventListener("tool-moved", () => {
 });
 
 canvas.addEventListener("sticker-added", () => {
-    createButton(stickers[0], stickerButtons, () => {
-        currentRotation = getRandomRotation();
-        notify("tool-moved");
-    }, true);
+    createButton(
+        stickers[0],
+        stickerButtons,
+        () => {
+            currentRotation = getRandomRotation();
+            notify("tool-moved");
+        },
+        true,
+    );
 });
 
 canvas.addEventListener("mouseout", () => {
@@ -214,12 +225,21 @@ canvas.addEventListener("mousedown", (e) => {
     cursor.y = e.offsetY;
 
     if (currentButton?.parentElement === markerButtons) {
-        currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness, currentColor);
+        currentLine = new MarkerCommand(
+            cursor.x,
+            cursor.y,
+            currentThickness,
+            currentColor,
+        );
         lines.push(currentLine!);
         redoLines.splice(0, redoLines.length);
-    }
-    else {
-        currentLine = new StickerCommand(currentButton!.innerHTML, cursor.x, cursor.y, currentRotation);
+    } else {
+        currentLine = new StickerCommand(
+            currentButton!.innerHTML,
+            cursor.x,
+            cursor.y,
+            currentRotation,
+        );
         lines.push(currentLine!);
         redoLines.splice(0, redoLines.length);
     }
@@ -239,8 +259,7 @@ canvas.addEventListener("mousemove", (e) => {
         currentLine.drag(cursor.x, cursor.y);
 
         notify("drawing-changed");
-    }
-    else canvas.style.cursor = "none";
+    } else canvas.style.cursor = "none";
 });
 
 canvas.addEventListener("mouseup", () => {
@@ -256,7 +275,7 @@ function createButton(
     container: HTMLDivElement,
     onClick: () => void,
     selectable: boolean = false,
-    isSelected: boolean = false
+    isSelected: boolean = false,
 ) {
     const button = document.createElement("button");
     button.innerHTML = label;
@@ -308,25 +327,41 @@ const markerButtons = document.createElement("div");
 markerButtons.className = "buttonContainer";
 canvasContainer.append(markerButtons);
 
-createButton("THIN", markerButtons, () => {
-    currentThickness = 2;
-    currentColor = getRandomRGBColor();
-}, true, true);
+createButton(
+    "THIN",
+    markerButtons,
+    () => {
+        currentThickness = 2;
+        currentColor = getRandomRGBColor();
+    },
+    true,
+    true,
+);
 
-createButton("THICK", markerButtons, () => {
-    currentThickness = 5;
-    currentColor = getRandomRGBColor();
-}, true);
+createButton(
+    "THICK",
+    markerButtons,
+    () => {
+        currentThickness = 5;
+        currentColor = getRandomRGBColor();
+    },
+    true,
+);
 
 const stickerButtons = document.createElement("div");
 stickerButtons.className = "buttonContainer";
 canvasContainer.append(stickerButtons);
 
 for (const sticker of stickers) {
-    createButton(sticker, stickerButtons, () => {
-        currentRotation = getRandomRotation();
-        notify("tool-moved");
-    }, true);
+    createButton(
+        sticker,
+        stickerButtons,
+        () => {
+            currentRotation = getRandomRotation();
+            notify("tool-moved");
+        },
+        true,
+    );
 }
 
 createButton("CUSTOM", canvasContainer, () => {
