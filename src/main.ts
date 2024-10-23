@@ -52,6 +52,8 @@ function notify(name: string) {
 }
 
 let currentThickness: number = 2;
+let currentColor: string = "black";
+let currentRotation: number = 0;
 let cursorCommand: CursorCommand | null = null;
 
 interface Displayable {
@@ -62,10 +64,12 @@ interface Displayable {
 class MarkerCommand implements Displayable {
     points: { x: number; y: number }[] = [];
     thickness: number;
+    color: string;
 
-    constructor(x: number, y: number, thickness: number) {
+    constructor(x: number, y: number, thickness: number, color: string) {
         this.points.push({ x, y });
         this.thickness = thickness;
+        this.color = color;
     }
 
     drag(x: number, y: number) {
@@ -80,6 +84,7 @@ class MarkerCommand implements Displayable {
                 context.lineTo(x, y);
             }
             context.lineWidth = this.thickness;
+            context.strokeStyle = this.color;
             context.stroke();
         }
     }
@@ -89,41 +94,35 @@ class StickerCommand implements Displayable {
     sticker: string;
     x: number;
     y: number;
-    centeredX: number;
-    centeredY: number;
+    rotation: number;
 
-    constructor(sticker: string, x: number, y: number) {
+    constructor(sticker: string, x: number, y: number, rotation: number) {
         this.sticker = sticker;
         this.x = x;
         this.y = y;
+        this.rotation = rotation;
 
         const fontSize: number = 32;
         const context = document.createElement('canvas').getContext('2d')!;
         context.font = `${fontSize}px Arial`;
-        const textWidth = context.measureText(this.sticker).width;
-        const textHeight = fontSize;
-
-        this.centeredX = this.x - textWidth / 2;
-        this.centeredY = this.y + textHeight / 2;
     }
 
     display(context: CanvasRenderingContext2D) {
         const fontSize: number = 32;
         context.font = `${fontSize}px Arial`;
+        const textWidth = context.measureText(this.sticker).width;
+        const textHeight = fontSize;
 
-        context.fillText(this.sticker, this.centeredX, this.centeredY);
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(this.rotation);
+        context.fillText(this.sticker, -textWidth / 2, textHeight / 2);
+        context.restore();
     }
 
     drag(x: number, y: number) {
         this.x = x;
         this.y = y;
-
-        const fontSize: number = 32;
-        const textWidth = ctx!.measureText(this.sticker).width;
-        const textHeight = fontSize;
-
-        this.centeredX = this.x - textWidth / 2;
-        this.centeredY = this.y + textHeight / 2;
     }
 }
 
@@ -137,26 +136,28 @@ class CursorCommand {
     }
 
     display(context: CanvasRenderingContext2D) {
-        if (currentButton?.parentElement === markerButtons){
+        if (currentButton?.parentElement === markerButtons) {
             const radius = currentThickness;
             context.beginPath();
             context.arc(this.x, this.y, radius, 0, Math.PI * 2);
             context.fillStyle = "transparent";
             context.fill();
-            context.strokeStyle = "black";
+            context.strokeStyle = currentColor;
             context.lineWidth = 1;
             context.stroke();
-        }
-        else {
+        } else {
             const fontSize: number = 32;
             context.font = `${fontSize}px Arial`;
             const textWidth = context.measureText(currentButton!.innerHTML).width;
             const textHeight = fontSize;
 
-            const centeredX = this.x - textWidth / 2;
-            const centeredY = this.y + textHeight / 2;
-            
-            context.fillText(currentButton!.innerHTML, centeredX, centeredY);
+            const rotationAngle = currentRotation;
+
+            context.save();
+            context.translate(this.x, this.y);
+            context.rotate(rotationAngle);
+            context.fillText(currentButton!.innerHTML, -textWidth / 2, textHeight / 2);
+            context.restore();
         }
     }
 }
@@ -191,6 +192,7 @@ canvas.addEventListener("tool-moved", () => {
 
 canvas.addEventListener("sticker-added", () => {
     createButton(stickers[0], stickerButtons, () => {
+        currentRotation = getRandomRotation();
         notify("tool-moved");
     }, true);
 });
@@ -212,12 +214,12 @@ canvas.addEventListener("mousedown", (e) => {
     cursor.y = e.offsetY;
 
     if (currentButton?.parentElement === markerButtons) {
-        currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness);
+        currentLine = new MarkerCommand(cursor.x, cursor.y, currentThickness, currentColor);
         lines.push(currentLine!);
         redoLines.splice(0, redoLines.length);
     }
     else {
-        currentLine = new StickerCommand(currentButton!.innerHTML, cursor.x, cursor.y);
+        currentLine = new StickerCommand(currentButton!.innerHTML, cursor.x, cursor.y, currentRotation);
         lines.push(currentLine!);
         redoLines.splice(0, redoLines.length);
     }
@@ -308,10 +310,12 @@ canvasContainer.append(markerButtons);
 
 createButton("THIN", markerButtons, () => {
     currentThickness = 2;
+    currentColor = getRandomRGBColor();
 }, true, true);
 
 createButton("THICK", markerButtons, () => {
     currentThickness = 5;
+    currentColor = getRandomRGBColor();
 }, true);
 
 const stickerButtons = document.createElement("div");
@@ -320,6 +324,7 @@ canvasContainer.append(stickerButtons);
 
 for (const sticker of stickers) {
     createButton(sticker, stickerButtons, () => {
+        currentRotation = getRandomRotation();
         notify("tool-moved");
     }, true);
 }
@@ -331,3 +336,14 @@ createButton("CUSTOM", canvasContainer, () => {
         notify("sticker-added");
     }
 });
+
+function getRandomRGBColor() {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function getRandomRotation() {
+    return Math.random() * 2 * Math.PI;
+}
