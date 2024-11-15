@@ -1,7 +1,8 @@
 import "./style.css";
 
 const APP_NAME = "Sticker Sketchpad";
-const app = document.querySelector<HTMLDivElement>("#app")!;
+const app: HTMLDivElement | null = document.querySelector("#app");
+if (!app) throw new Error("App container not found");
 
 document.title = APP_NAME;
 
@@ -44,8 +45,11 @@ canvasContainer.append(canvas);
 
 const ctx = canvas.getContext("2d");
 
-if (ctx) ctx.fillStyle = "white";
-ctx?.fillRect(0, 0, canvas.width, canvas.height);
+if (!ctx) {
+    throw new Error("Failed to get canvas 2D context");
+}
+ctx.fillStyle = "white";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 function notify(name: string) {
     canvas.dispatchEvent(new Event(name));
