@@ -194,6 +194,7 @@ canvas.addEventListener("tool-moved", () => {
     }
 
     cursorCommand?.display(ctx!);
+    colorPicker.value = currentColor;
 });
 
 canvas.addEventListener("sticker-added", () => {
@@ -332,7 +333,8 @@ createButton(
     markerButtons,
     () => {
         currentThickness = 2;
-        currentColor = getRandomRGBColor();
+        currentColor = getRandomHexColor();
+        notify("tool-moved");
     },
     true,
     true,
@@ -343,10 +345,22 @@ createButton(
     markerButtons,
     () => {
         currentThickness = 5;
-        currentColor = getRandomRGBColor();
+        currentColor = getRandomHexColor();
+        notify("tool-moved");
     },
     true,
 );
+
+const colorPicker = document.createElement("input");
+colorPicker.type = "color";
+colorPicker.id = "colorPicker";
+colorPicker.value = currentColor;
+markerButtons.appendChild(colorPicker);
+
+colorPicker.addEventListener("input", (event) => {
+    const input = event.target as HTMLInputElement;
+    currentColor = input.value;
+});
 
 const stickerButtons = document.createElement("div");
 stickerButtons.className = "buttonContainer";
@@ -372,11 +386,8 @@ createButton("CUSTOM", canvasContainer, () => {
     }
 });
 
-function getRandomRGBColor() {
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
-    return `rgb(${r}, ${g}, ${b})`;
+function getRandomHexColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16);
 }
 
 function getRandomRotation() {
